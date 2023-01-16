@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
+
+	"github.com/db-proxy/proxy/internal/proxy"
 )
 
 func NewProxy(host, port string) *Proxy {
@@ -16,25 +19,25 @@ func NewProxy(host, port string) *Proxy {
 type Proxy struct {
 	host         string
 	port         string
-	connectionId uint64
+	connectionId string
 }
 
-func getResolvedAddresses(host string) *net.TCPAddr {
-	addr, err := net.ResolveTCPAddr("tcp", host)
-	if err != nil {
-		log.Fatalln("ResolveTCPAddr of host:", err)
-	}
-	return addr
-}
+// func getResolvedAddresses(host string) *net.TCPAddr {
+// 	addr, err := net.ResolveTCPAddr("tcp", host)
+// 	if err != nil {
+// 		log.Fatalln("ResolveTCPAddr of host:", err)
+// 	}
+// 	return addr
+// }
 
-// Listener of a net.TCPAddr.
-func getListener(addr *net.TCPAddr) *net.TCPListener {
-	listener, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		log.Fatalf("ListenTCP of %s error:%v", addr, err)
-	}
-	return listener
-}
+// // Listener of a net.TCPAddr.
+// func getListener(addr *net.TCPAddr) *net.TCPListener {
+// 	listener, err := net.ListenTCP("tcp", addr)
+// 	if err != nil {
+// 		log.Fatalf("ListenTCP of %s error:%v", addr, err)
+// 	}
+// 	return listener
+// }
 
 func (r *Proxy) Start(port string) error {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
@@ -44,7 +47,7 @@ func (r *Proxy) Start(port string) error {
 
 	for {
 		conn, err := ln.Accept()
-		r.connectionId += 1
+		r.connectionId = fmt.Sprintf("%v", time.Now().UnixNano())
 		log.Printf("Connection accepted: [%d] %s", r.connectionId, conn.RemoteAddr())
 		if err != nil {
 			log.Printf("Failed to accept new connection: [%d] %s", r.connectionId, err.Error())
@@ -55,8 +58,8 @@ func (r *Proxy) Start(port string) error {
 	}
 }
 
-func (r *Proxy) handle(conn net.Conn, connectionId uint64) {
-	connection := NewConnection(r.host, r.port, conn, connectionId)
+func (r *Proxy) handle(conn net.Conn, connectionId string) {
+	connection := proxy.NewConnection(r.host, r.port, conn, connectionId)
 	err := connection.Handle()
 	if err != nil {
 		log.Printf("Error handling proxy connection: %s", err.Error())
