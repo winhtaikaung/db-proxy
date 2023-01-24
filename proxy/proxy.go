@@ -1,10 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
-	"time"
 
 	"github.com/db-proxy/proxy/internal/proxy"
 )
@@ -45,21 +45,35 @@ func (r *Proxy) Start(port string) error {
 		return err
 	}
 
+	pool, poolError := proxy.CreateTcpConnPool(&proxy.TcpConfig{
+		Host:         *flag.String("tcp-host", "127.0.0.1", "host of tcp server"),
+		Port:         *flag.Int("tcp-port", 3306, "port of tcp server"),
+		MaxIdleConns: *flag.Int("max-idle", 1, "max number of idle tcp conns"),
+		MaxOpenConn:  *flag.Int("max-open", 10, "max number of open tcp conns"),
+	})
+
+	if poolError != nil {
+		log.Printf("Failed to accept new connection: [%d] %s", r.connectionId, poolError.Error())
+
+	}
+
 	for {
 		conn, err := ln.Accept()
-		r.connectionId = fmt.Sprintf("%v", time.Now().UnixNano())
-		log.Printf("Connection accepted: [%d] %s", r.connectionId, conn.RemoteAddr())
+
+		// r.connectionId = fmt.Sprintf("%v", time.Now().UnixNano())
+		// log.Printf("Connection accepted: [%d] %s", r.connectionId, conn.RemoteAddr())
+
 		if err != nil {
 			log.Printf("Failed to accept new connection: [%d] %s", r.connectionId, err.Error())
 			continue
 		}
 
-		go r.handle(conn, r.connectionId)
+		go r.handle(conn, pool)
 	}
 }
 
-func (r *Proxy) handle(conn net.Conn, connectionId string) {
-	connection := proxy.NewConnection(r.host, r.port, conn, connectionId)
+func (r *Proxy) handle(conn net.Conn, pool *proxy.TcpConnPool) {
+	connection := proxy.NewConnection(r.host, r.port, conn, pool)
 	err := connection.Handle()
 	if err != nil {
 		log.Printf("Error handling proxy connection: %s", err.Error())

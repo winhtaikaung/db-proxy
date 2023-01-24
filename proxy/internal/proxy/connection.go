@@ -23,20 +23,28 @@ const (
 	maxQueueLength = 10_000 // max 10,000 connection requests in queue
 )
 
-func NewConnection(host string, port string, conn net.Conn, id string) *Connection {
-	return &Connection{
-		host: host,
-		port: port,
-		conn: conn,
-		id:   id,
-	}
+func NewConnection(host string, port string, conn net.Conn, pool *TcpConnPool) *Connection {
+
+	var (
+		err error
+	)
+
+	defer func() {
+		if err != nil {
+			conn.Close()
+		}
+	}()
+
+	tcpConn, err := pool.get()
+
+	return tcpConn
 }
 
 type Connection struct {
 	id   string
 	conn net.Conn
 	host string
-	port string
+	port int
 	pool *TcpConnPool
 }
 
@@ -65,7 +73,7 @@ type TcpConfig struct {
 }
 
 func (r *Connection) Handle() error {
-	address := fmt.Sprintf("%s%s", r.host, r.port)
+	address := fmt.Sprintf("%s:%d", r.host, r.port)
 	mysql, err := net.Dial("tcp", address)
 	if err != nil {
 		log.Printf("Failed to connection to MySQL: [%d] %s", r.id, err.Error())

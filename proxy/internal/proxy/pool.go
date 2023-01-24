@@ -105,6 +105,8 @@ func (p *TcpConnPool) openNewTcpConnection() (*Connection, error) {
 		id:   fmt.Sprintf("%v", time.Now().UnixNano()),
 		conn: c,
 		pool: p,
+		host: p.host,
+		port: p.port,
 	}, nil
 }
 
