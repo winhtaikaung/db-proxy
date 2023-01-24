@@ -61,10 +61,10 @@ func (r *Proxy) Start(port string) error {
 		conn, err := ln.Accept()
 
 		// r.connectionId = fmt.Sprintf("%v", time.Now().UnixNano())
-		// log.Printf("Connection accepted: [%d] %s", r.connectionId, conn.RemoteAddr())
+		log.Printf("Connection accepted: [%s] %s", r.connectionId, conn.RemoteAddr())
 
 		if err != nil {
-			log.Printf("Failed to accept new connection: [%d] %s", r.connectionId, err.Error())
+			log.Printf("Failed to accept new connection: [%s] %s", r.connectionId, err.Error())
 			continue
 		}
 
