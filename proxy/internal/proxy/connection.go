@@ -23,7 +23,7 @@ const (
 	maxQueueLength = 10_000 // max 10,000 connection requests in queue
 )
 
-func NewConnection(host string, port string, conn net.Conn, pool *TcpConnPool) *Connection {
+func NewConnection(conn net.Conn, pool *TcpConnPool) *Connection {
 
 	var (
 		err error
@@ -36,6 +36,7 @@ func NewConnection(host string, port string, conn net.Conn, pool *TcpConnPool) *
 	}()
 
 	tcpConn, err := pool.get()
+	tcpConn.conn = conn
 
 	return tcpConn
 }
